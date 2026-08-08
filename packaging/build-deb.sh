@@ -6,6 +6,10 @@
 set -euo pipefail
 
 VERSION="${1:-0.1.0}"
+# Prefer a user-local SDK when dotnet is not on PATH.
+if ! command -v dotnet >/dev/null 2>&1 && [ -x "$HOME/.dotnet/dotnet" ]; then
+    export PATH="$HOME/.dotnet:$PATH"
+fi
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 DIST_DIR="$SCRIPT_DIR/dist"
