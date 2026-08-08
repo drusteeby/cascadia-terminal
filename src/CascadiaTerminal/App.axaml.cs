@@ -85,6 +85,9 @@ public class App : Application
             SessionProfileStore = profileStore,
             Keybindings = WtActionMapper.BuildKeybindings(userSettingsJson),
             ConfirmCloseAllTabs = true,
+            // Terminal-first chrome: the tool rail stays one click away
+            // (View > Show Left Panel) but does not compete with the prompt.
+            ShowLeftPanelOnStartup = false,
         };
     }
 
