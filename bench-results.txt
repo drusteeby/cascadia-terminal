@@ -1,0 +1,5 @@
+startup_to_live_shell_ms=2764
+shell_ready=True
+seq_1M_plain_seconds=5.187
+colored_escape_flood_seconds=0.102
+cat_10MB_binaryish_seconds=3.020

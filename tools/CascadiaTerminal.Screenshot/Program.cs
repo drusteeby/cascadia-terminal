@@ -103,6 +103,25 @@ Capture("10-link-hints");
 SendKeys(Avalonia.Input.PhysicalKey.Escape, 1);
 Pump(seconds: 0.3);
 
+// Resize-stability scene: with live shells and a split visible, wiggle the
+// window size in many small steps (drives the same per-tick pane layout
+// path as dragging a splitter), then settle and capture. The prompt must
+// appear exactly once per pane, unduplicated.
+Run(() => window.ViewModel!.SplitPaneRightCommand.Execute().Subscribe());
+Pump(seconds: 1.5);
+for (int i = 0; i < 24; i++)
+{
+    int step = i;
+    Run(() => window.Width = 1280 - ((step % 12) * 24));
+    Pump(seconds: 0.06);
+}
+
+Run(() => window.Width = 1280);
+Pump(seconds: 1.5);
+Capture("11-resize-stability");
+Run(() => window.ViewModel!.ClosePaneOrTabCommand.Execute().Subscribe());
+Pump(seconds: 0.5);
+
 // Clean close so the workspace snapshot persists (session restore).
 // Close extra tabs first so confirm-close-all-tabs does not intercept.
 Run(() => window.ViewModel!.CloseCurrentTabCommand.Execute().Subscribe());
