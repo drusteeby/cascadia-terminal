@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <AssemblyTitle>Cascadia Terminal</AssemblyTitle>
+    <Product>Cascadia Terminal</Product>
+    <Description>Unofficial Linux port of the Windows Terminal experience.</Description>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <NoWarn>$(NoWarn);CA1416</NoWarn>
+    <RoyalTerminalRoot>$(MSBuildThisFileDirectory)..\..\..\RoyalTerminal</RoyalTerminalRoot>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="$(RoyalTerminalRoot)\src\RoyalTerminal.Avalonia.App\RoyalTerminal.Avalonia.App.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="12.0.5" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.0.5" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="12.0.5" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.0.5" />
+    <PackageReference Include="ReactiveUI.Avalonia" Version="12.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Windows Terminal assets ported from microsoft/terminal defaults.json -->
+    <EmbeddedResource Include="..\..\assets\wt-schemes.json" LogicalName="CascadiaTerminal.Assets.wt-schemes.json" />
+    <EmbeddedResource Include="..\..\assets\wt-default-actions.json" LogicalName="CascadiaTerminal.Assets.wt-default-actions.json" />
+    <EmbeddedResource Include="..\..\assets\wt-default-profiles.json" LogicalName="CascadiaTerminal.Assets.wt-default-profiles.json" />
+    <EmbeddedResource Include="..\..\assets\wt-globals.json" LogicalName="CascadiaTerminal.Assets.wt-globals.json" />
+  </ItemGroup>
+
+  <!-- Native Ghostty VT assets (same mechanism as the fork's Demo app) -->
+  <Import Project="$(RoyalTerminalRoot)\src\RoyalTerminal.GhosttySharp.Native.Linux64\build\RoyalTerminal.GhosttySharp.Native.Linux64.targets" Condition="$([MSBuild]::IsOSPlatform('Linux'))" />
+
+</Project>
