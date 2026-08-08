@@ -88,6 +88,13 @@ public static class WtProfileMapper
             Behavior = new TerminalSessionBehaviorSettings
             {
                 CopyOnSelectEnabled = settings.CopyOnSelect,
+                // Do not rewrap the buffer on resize. An interactive shell
+                // redraws its own prompt/input on SIGWINCH; if the terminal
+                // ALSO reflows that line, the two layouts disagree by a row
+                // when a pane is narrowed below the prompt width and the
+                // prompt is duplicated (Windows Terminal / Alacritty behave
+                // the same way — the shell owns the current line).
+                ReflowOnResize = false,
             },
             Transport = new TerminalSessionTransportProfile
             {
