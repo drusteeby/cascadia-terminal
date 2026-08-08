@@ -46,7 +46,14 @@ directly. VT processing uses Ghostty's `libghostty-vt`.
   One Half Dark/Light, Solarized, Tango, Vintage, Dimidium, …) plus user
   schemes from settings.json
 - **Command palette**: `Ctrl+Shift+P` — fuzzy-searchable list of every
-  action with its key, keyboard or mouse driven
+  action with its key, plus switch-to-tab and new-tab-per-profile entries
+- **Keyboard selection (mark mode)**: `Ctrl+Shift+M` — move a cursor with
+  arrows or `hjkl` (plus `w`/`b`, `0`/`$`, `g`/`G`, PgUp/PgDn), `v` to
+  select, `y`/Enter to copy — no mouse required
+- **Keyboard links (hints)**: `Ctrl+Shift+O` labels every visible URL;
+  type the label to open it
+- **Session restore**: tab/pane layout and working directories persist on
+  close and restore on the next launch
 - **Search**: `Ctrl+Shift+F` in-content find bar with match counts and
   per-pane search state
 - **Broadcast input**: `Alt+Shift+B` mirrors keystrokes to every pane in
@@ -77,6 +84,8 @@ anything through the `actions`/`keybindings` arrays in settings.json.
 | Copy / paste | `Ctrl+Shift+C` / `Ctrl+Shift+V` |
 | Find | `Ctrl+Shift+F` |
 | Command palette | `Ctrl+Shift+P` |
+| Mark mode (keyboard selection) | `Ctrl+Shift+M` |
+| Open link by keyboard (hints) | `Ctrl+Shift+O` |
 | Open settings.json | `Ctrl+,` |
 | Broadcast input | `Alt+Shift+B` |
 | Fullscreen | `F11` |

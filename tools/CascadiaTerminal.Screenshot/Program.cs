@@ -78,9 +78,54 @@ Pump(seconds: 0.3);
 Run(() => window.ViewModel!.ToggleBroadcastInputCommand.Execute().Subscribe());
 Pump(seconds: 0.8);
 Capture("08-broadcast-input");
+Run(() => window.ViewModel!.ToggleBroadcastInputCommand.Execute().Subscribe());
+Pump(seconds: 0.3);
+
+// Mark mode: enter, select the word under a moved cursor, capture.
+SendText("echo select this text with the keyboard only\n");
+Pump(seconds: 1.0);
+Run(() => window.ViewModel!.ToggleMarkModeCommand.Execute().Subscribe());
+Pump(seconds: 0.5);
+SendKeys(Avalonia.Input.PhysicalKey.K, 2);           // up two rows
+SendKeys(Avalonia.Input.PhysicalKey.V, 1);           // anchor selection
+SendKeys(Avalonia.Input.PhysicalKey.W, 3);           // three words right
+Pump(seconds: 0.7);
+Capture("09-mark-mode");
+SendKeys(Avalonia.Input.PhysicalKey.Escape, 1);
+Pump(seconds: 0.3);
+
+// Link hints: put URLs on screen, toggle hints, capture the labels.
+SendText("printf 'docs: https://learn.microsoft.com/terminal\\nrepo: https://github.com/microsoft/terminal\\n'\n");
+Pump(seconds: 1.0);
+Run(() => window.ViewModel!.ToggleLinkHintsCommand.Execute().Subscribe());
+Pump(seconds: 0.7);
+Capture("10-link-hints");
+SendKeys(Avalonia.Input.PhysicalKey.Escape, 1);
+Pump(seconds: 0.3);
+
+// Clean close so the workspace snapshot persists (session restore).
+// Close extra tabs first so confirm-close-all-tabs does not intercept.
+Run(() => window.ViewModel!.CloseCurrentTabCommand.Execute().Subscribe());
+Pump(seconds: 0.5);
+Run(() => window.ViewModel!.CloseCurrentTabCommand.Execute().Subscribe());
+Pump(seconds: 0.5);
+Run(() => window.Close());
+Pump(seconds: 1.0);
 
 Console.WriteLine($"Screenshots written to {Path.GetFullPath(outputDirectory)}");
 return 0;
+
+void SendKeys(Avalonia.Input.PhysicalKey key, int count)
+{
+    Dispatcher.UIThread.Invoke(() =>
+    {
+        for (int i = 0; i < count; i++)
+        {
+            window.KeyPressQwerty(key, Avalonia.Input.RawInputModifiers.None);
+            window.KeyReleaseQwerty(key, Avalonia.Input.RawInputModifiers.None);
+        }
+    });
+}
 
 void Run(Action action) => Dispatcher.UIThread.Invoke(action);
 

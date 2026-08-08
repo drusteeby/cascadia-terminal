@@ -28,6 +28,7 @@ public static class WtActionMapper
         ("ctrl+pgup", ShellKeybindingActions.PrevTab),
         ("ctrl+pgdn", ShellKeybindingActions.NextTab),
         ("alt+shift+b", ShellKeybindingActions.ToggleBroadcastInput),
+        ("ctrl+shift+o", ShellKeybindingActions.OpenLinkHints),
     ];
 
     /// <summary>
@@ -80,13 +81,33 @@ public static class WtActionMapper
                 continue; // explicitly unbound
             }
 
-            if (ConvertChord(keys) is { } gesture)
+            if (ConvertChord(keys) is { } gesture && IsSafeGlobalGesture(gesture))
             {
                 result.Add(new ShellKeybinding(gesture, action.Value.ActionId, action.Value.Argument));
             }
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Rejects chords that must reach the shell (bare or shift-only keys
+    /// like Enter or letters). Windows Terminal evaluates such bindings
+    /// conditionally (e.g. copy-on-Enter only with a selection); a global
+    /// window binding cannot, so only Ctrl/Alt/Meta chords and function
+    /// keys are safe to promote.
+    /// </summary>
+    public static bool IsSafeGlobalGesture(string gesture)
+    {
+        string[] parts = gesture.Split('+');
+        string key = parts[^1];
+        if (key.Length >= 2 && key[0] == 'F' && int.TryParse(key[1..], out int fn) && fn is >= 1 and <= 24)
+        {
+            return true;
+        }
+
+        return parts.Length > 1 &&
+               parts[..^1].Any(part => part is "Ctrl" or "Alt" or "Meta");
     }
 
     /// <summary>
@@ -232,6 +253,8 @@ public static class WtActionMapper
             "scrollToTop" => (ShellKeybindingActions.ScrollToTop, null),
             "scrollToBottom" => (ShellKeybindingActions.ScrollToBottom, null),
             "toggleBroadcastInput" => (ShellKeybindingActions.ToggleBroadcastInput, null),
+            "markMode" => (ShellKeybindingActions.MarkMode, null),
+            "openLinkHints" => (ShellKeybindingActions.OpenLinkHints, null),
             _ => null,
         };
     }

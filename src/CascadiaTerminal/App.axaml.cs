@@ -114,6 +114,10 @@ public class App : Application
             AdditionalThemePresets = WtSchemeConverter.ToPresets(allSchemes),
             DefaultThemePresetId = WtSchemeConverter.PresetId(defaultScheme),
             SessionProfileStore = profileStore,
+            // Session persistence: tab/pane layouts with cwds are saved on
+            // window close and restored on the next launch.
+            WorkspaceStore = new RoyalTerminal.Terminal.JsonFileTerminalWorkspaceStore(
+                Path.Combine(WtSettingsLoader.ConfigDirectory, "workspace.json")),
             Keybindings = WtActionMapper.BuildKeybindings(userSettingsJson),
             ConfirmCloseAllTabs = true,
             // Terminal-first chrome: the tool rail stays one click away
