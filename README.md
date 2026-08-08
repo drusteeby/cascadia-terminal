@@ -124,13 +124,21 @@ DejaVu Sans Mono → monospace.
 
 ## Build & run
 
-Requires the .NET 10 SDK and the RoyalTerminal fork checked out as a sibling
-directory (`../RoyalTerminal`).
+Requires the .NET 10 SDK. The app references the terminal-engine fork
+(**RoyalTerminal**) via a sibling-directory project reference, so clone both
+repositories side by side:
 
 ```sh
+git clone https://github.com/drusteeby/RoyalTerminal.git
+git clone https://github.com/drusteeby/cascadia-terminal.git
+cd cascadia-terminal
+
 dotnet build src/CascadiaTerminal/CascadiaTerminal.csproj -c Release
 dotnet src/CascadiaTerminal/bin/Release/net10.0/CascadiaTerminal.dll
 ```
+
+The `RoyalTerminal` repo ships the prebuilt `libghostty-vt` native
+libraries, so no Zig toolchain or submodule fetch is needed.
 
 Tests:
 
