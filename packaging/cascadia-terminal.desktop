@@ -1,0 +1,16 @@
+[Desktop Entry]
+Name=Cascadia Terminal
+GenericName=Terminal Emulator
+Comment=Windows Terminal experience for Linux — tabs, panes, and settings.json
+Exec=cascadia-terminal
+Icon=cascadia-terminal
+Terminal=false
+Type=Application
+Categories=System;TerminalEmulator;
+Keywords=shell;prompt;command;commandline;cmd;console;terminal;
+StartupWMClass=CascadiaTerminal
+Actions=NewWindow;
+
+[Desktop Action NewWindow]
+Name=New Window
+Exec=cascadia-terminal

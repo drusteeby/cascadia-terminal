@@ -27,6 +27,7 @@ public static class WtActionMapper
         ("ctrl+shift+x", ShellKeybindingActions.TogglePaneZoom),
         ("ctrl+pgup", ShellKeybindingActions.PrevTab),
         ("ctrl+pgdn", ShellKeybindingActions.NextTab),
+        ("alt+shift+b", ShellKeybindingActions.ToggleBroadcastInput),
     ];
 
     /// <summary>
@@ -195,7 +196,7 @@ public static class WtActionMapper
 
         return action switch
         {
-            "newTab" => (ShellKeybindingActions.NewTab, null),
+            "newTab" => ConvertNewTab(hasArgs ? args : default),
             "newWindow" => (ShellKeybindingActions.NewWindow, null),
             "closeTab" => (ShellKeybindingActions.CloseTab, null),
             "closePane" => (ShellKeybindingActions.ClosePane, null),
@@ -221,8 +222,32 @@ public static class WtActionMapper
             "find" => (ShellKeybindingActions.Find, null),
             "adjustFontSize" => ConvertAdjustFontSize(hasArgs ? args : default),
             "resetFontSize" => (ShellKeybindingActions.ResetFontSize, null),
+            "toggleFullscreen" => (ShellKeybindingActions.ToggleFullscreen, null),
+            "openSettings" => (ShellKeybindingActions.OpenSettings, null),
+            "commandPalette" => (ShellKeybindingActions.CommandPalette, null),
+            "scrollUp" => (ShellKeybindingActions.ScrollUp, null),
+            "scrollDown" => (ShellKeybindingActions.ScrollDown, null),
+            "scrollUpPage" => (ShellKeybindingActions.ScrollUpPage, null),
+            "scrollDownPage" => (ShellKeybindingActions.ScrollDownPage, null),
+            "scrollToTop" => (ShellKeybindingActions.ScrollToTop, null),
+            "scrollToBottom" => (ShellKeybindingActions.ScrollToBottom, null),
+            "toggleBroadcastInput" => (ShellKeybindingActions.ToggleBroadcastInput, null),
             _ => null,
         };
+    }
+
+    private static (string, string?)? ConvertNewTab(JsonElement args)
+    {
+        if (args.ValueKind == JsonValueKind.Object &&
+            TryGet(args, "index", out JsonElement index) &&
+            index.ValueKind == JsonValueKind.Number &&
+            index.TryGetInt32(out int value) &&
+            value >= 0)
+        {
+            return (ShellKeybindingActions.NewTabProfileIndex, value.ToString());
+        }
+
+        return (ShellKeybindingActions.NewTab, null);
     }
 
     private static (string, string?)? ConvertSwitchToTab(JsonElement args)

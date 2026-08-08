@@ -45,7 +45,16 @@ directly. VT processing uses Ghostty's `libghostty-vt`.
 - **Color schemes**: all 16 schemes shipped by Windows Terminal (Campbell,
   One Half Dark/Light, Solarized, Tango, Vintage, Dimidium, …) plus user
   schemes from settings.json
-- **Search**: `Ctrl+Shift+F` find-in-buffer with highlights
+- **Command palette**: `Ctrl+Shift+P` — fuzzy-searchable list of every
+  action with its key, keyboard or mouse driven
+- **Search**: `Ctrl+Shift+F` in-content find bar with match counts and
+  per-pane search state
+- **Broadcast input**: `Alt+Shift+B` mirrors keystrokes to every pane in
+  the tab (amber tab indicator)
+- **Windows**: multiple windows (`Ctrl+Shift+N`), move a tab to its own
+  window, confirm-on-close, fullscreen (`F11`)
+- **Zoom & scroll**: `Ctrl+wheel` font zoom, `Ctrl+Shift+arrows`/`PgUp`/
+  `PgDn`/`Home`/`End` scrollback navigation
 
 ## Default keybindings (Windows Terminal parity)
 
@@ -67,8 +76,23 @@ anything through the `actions`/`keybindings` arrays in settings.json.
 | Zoom pane | `Ctrl+Shift+X` |
 | Copy / paste | `Ctrl+Shift+C` / `Ctrl+Shift+V` |
 | Find | `Ctrl+Shift+F` |
+| Command palette | `Ctrl+Shift+P` |
+| Open settings.json | `Ctrl+,` |
+| Broadcast input | `Alt+Shift+B` |
+| Fullscreen | `F11` |
+| Scroll line / page / edge | `Ctrl+Shift+Up/Down` / `PgUp/PgDn` / `Home/End` |
 | Select all | `Ctrl+Shift+A` |
-| Font size | `Ctrl+Plus` / `Ctrl+Minus` / `Ctrl+0` |
+| Font size | `Ctrl+Plus` / `Ctrl+Minus` / `Ctrl+0`, `Ctrl+wheel` |
+
+## Install
+
+```sh
+packaging/build-deb.sh 0.1.0
+sudo apt install ./packaging/dist/cascadia-terminal_0.1.0_amd64.deb
+```
+
+Self-contained build (no .NET runtime needed), desktop entry and icons
+included; launch as `cascadia-terminal` or from the app grid.
 
 ## Settings
 

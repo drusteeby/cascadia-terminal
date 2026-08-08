@@ -149,7 +149,44 @@ public sealed class WtSettingsStore : ITerminalSessionProfileStore
             (root as JsonObject)?.Remove(ExtendedProfilesProperty);
         }
 
-        WriteAtomically(root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
+        // JsonNode rewrites drop comments; preserve at least the header
+        // comment block, and keep the full commented original as .bak.
+        string header = ReadHeaderComments();
+        WriteAtomically(header + root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
+    }
+
+    /// <summary>
+    /// Reads the leading comment lines of settings.json (before the opening
+    /// brace) so rewrites keep the user's file header.
+    /// </summary>
+    private string ReadHeaderComments()
+    {
+        try
+        {
+            List<string> header = [];
+            foreach (string line in File.ReadLines(_settingsPath))
+            {
+                string trimmed = line.TrimStart();
+                if (trimmed.StartsWith("//", StringComparison.Ordinal) || trimmed.Length == 0)
+                {
+                    header.Add(line);
+                    continue;
+                }
+
+                break;
+            }
+
+            while (header.Count > 0 && string.IsNullOrWhiteSpace(header[^1]))
+            {
+                header.RemoveAt(header.Count - 1);
+            }
+
+            return header.Count == 0 ? string.Empty : string.Join('\n', header) + '\n';
+        }
+        catch (IOException)
+        {
+            return string.Empty;
+        }
     }
 
     /// <summary>

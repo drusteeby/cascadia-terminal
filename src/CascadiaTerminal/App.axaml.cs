@@ -39,15 +39,46 @@ public class App : Application
     /// Creates a fully wired shell window; used for the first window and by
     /// the "new window" action.
     /// </summary>
-    internal static MainWindow CreateShellWindow()
+    internal static MainWindow CreateShellWindow(string? initialProfileId = null, string? initialWorkingDirectory = null)
     {
         MainWindowShellOptions options = BuildShellOptions();
         options.NewWindowFactory = () => CreateShellWindow().Show();
+        options.MoveTabToNewWindowFactory = (profileId, workingDirectory) =>
+            CreateShellWindow(profileId, workingDirectory).Show();
+        options.OpenSettingsAction = OpenSettingsFileInEditor;
+        options.InitialProfileId = initialProfileId;
+        options.InitialWorkingDirectory = initialWorkingDirectory;
 
         MainWindow window = new(options);
         window.Title = "Cascadia Terminal";
         s_windows.Add(new WeakReference<MainWindow>(window));
         return window;
+    }
+
+    /// <summary>
+    /// Opens settings.json in the desktop's default editor (Ctrl+, /
+    /// "openSettings"), creating it first when missing.
+    /// </summary>
+    private static void OpenSettingsFileInEditor()
+    {
+        try
+        {
+            if (!File.Exists(WtSettingsLoader.SettingsPath))
+            {
+                WtSettingsLoader.LoadOrCreate();
+            }
+
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "xdg-open",
+                ArgumentList = { WtSettingsLoader.SettingsPath },
+                UseShellExecute = false,
+            });
+        }
+        catch (Exception)
+        {
+            // Opening an editor is best-effort.
+        }
     }
 
     internal static MainWindowShellOptions BuildShellOptions()
@@ -149,6 +180,17 @@ public class App : Application
 
         IReadOnlyList<ShellKeybinding> keybindings = WtActionMapper.BuildKeybindings(userSettingsJson);
 
+        // Rebuild theme presets so scheme edits re-theme running terminals.
+        (WtSettingsDocument settings, IReadOnlyList<WtColorScheme> allSchemes) = WtSettingsLoader.LoadOrCreate();
+        WtProfile? defaultProfile = settings.EffectiveProfiles().FirstOrDefault(p =>
+            settings.DefaultProfile is not null &&
+            string.Equals(p.Guid, settings.DefaultProfile, StringComparison.OrdinalIgnoreCase));
+        string defaultScheme = defaultProfile?.ColorScheme
+            ?? settings.ProfileDefaults?.ColorScheme
+            ?? "Campbell";
+        IReadOnlyList<ShellThemePreset> presets = WtSchemeConverter.ToPresets(allSchemes);
+        string defaultPresetId = WtSchemeConverter.PresetId(defaultScheme);
+
         s_windows.RemoveAll(reference => !reference.TryGetTarget(out _));
         foreach (WeakReference<MainWindow> reference in s_windows)
         {
@@ -158,6 +200,7 @@ public class App : Application
             }
 
             window.ApplyKeybindings(keybindings);
+            window.UpdateThemePresets(presets, defaultPresetId);
             // Refresh the profile catalog from the settings.json-backed store.
             window.ViewModel?.RefreshSessionLauncherCommand.Execute().Subscribe();
         }

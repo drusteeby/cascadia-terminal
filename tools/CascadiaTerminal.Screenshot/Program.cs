@@ -64,6 +64,20 @@ Capture("05-three-tabs");
 Run(() => window.ViewModel!.ToggleSearchPanelCommand.Execute().Subscribe());
 Pump(seconds: 1.0);
 Capture("06-search-panel");
+Run(() => window.ViewModel!.ToggleSearchPanelCommand.Execute().Subscribe());
+Pump(seconds: 0.5);
+
+Run(() => window.ViewModel!.OpenCommandPaletteCommand.Execute().Subscribe());
+Pump(seconds: 0.5);
+Run(() => window.ViewModel!.CommandPaletteQuery = "split");
+Pump(seconds: 0.8);
+Capture("07-command-palette");
+Run(() => window.ViewModel!.IsCommandPaletteVisible = false);
+Pump(seconds: 0.3);
+
+Run(() => window.ViewModel!.ToggleBroadcastInputCommand.Execute().Subscribe());
+Pump(seconds: 0.8);
+Capture("08-broadcast-input");
 
 Console.WriteLine($"Screenshots written to {Path.GetFullPath(outputDirectory)}");
 return 0;
