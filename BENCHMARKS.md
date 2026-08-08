@@ -7,15 +7,22 @@ the terminal's own read/parse/render rate the gate, so the same script is
 apples-to-apples across terminals. Script: `tools`' bench harness /
 `packaging`-independent shell script with three workloads.
 
-| Workload | Cascadia Terminal | Konsole | Alacritty |
-|---|---|---|---|
-| `seq 1 1000000` (6.9 MB plain flood) | 1.6–2.9 s | 0.28 s | 0.21 s |
-| 3000 colored printf lines (escape-heavy) | 0.05–0.14 s | 0.017 s | 0.018 s |
-| `cat` 13.3 MB base64 file | 1.6–2.8 s | 0.19 s | 0.10 s |
-| Startup → live shell (headless, cold) | ~2.8 s | — | — |
+Numbers below were captured under heavy background load (loadavg ~7), so
+the absolute values are inflated versus a quiet machine; the before/after
+columns were measured back-to-back under the same load, so the *ratio* is
+what to read.
 
-Prior to the drain-priority fix below, the flood rows measured 3.5–7.1 s
-and 2.6–4.9 s — a 2.5–4x improvement landed during this benchmarking pass.
+| Workload | Before | After (frame-collapse) | Konsole |
+|---|---|---|---|
+| `seq 1 1000000` (6.9 MB plain flood) | ~5.0 s | **~2.6 s** | 0.28 s |
+| `cat` 13.3 MB base64 file | ~7.0 s | **~4.4 s** | 0.19 s |
+| 3000 colored printf lines (escape-heavy) | ~0.2 s | **~0.1 s** | 0.017 s |
+| Startup → live shell (headless, cold) | ~2.8 s | ~2.8 s | — |
+
+Two optimization passes have landed:
+1. **Drain-priority fix** — the managed output drain ran at Background
+   priority (one small slice per frame); Input priority gave 2.5–4x.
+2. **Frame-collapse + parity move** (this pass) — a further ~1.6–2x, below.
 
 ## Reading these numbers
 
@@ -34,28 +41,50 @@ and 2.6–4.9 s — a 2.5–4x improvement landed during this benchmarking pass.
 ## Why, and the roadmap
 
 Output is parsed off the UI thread (Ghostty `libghostty-vt`), then applied
-to the screen model and rendered via Skia in bounded UI batches.
+to the screen model and rendered via Skia composition.
 
-What was found and fixed: UI drain slices were scheduled at
-`DispatcherPriority.Background`, which only runs when the dispatcher is
-idle — under floods that meant roughly one small slice per frame, capping
-throughput at ~1–3 MB/s regardless of budget sizes. Moving the drain to
-`Input` priority (fair FIFO with user input, still preempted by render)
-delivered the 2.5–4x gain above. Two further experiments did *not* help
-and were reverted: raising per-slice budgets 16x (larger finalize batches
-cost more than they save; also violates upstream flood-control test
-invariants) and looping the background parser without scheduler hops
-(regressed throughput ~3x — the hop is load-bearing for fairness).
+### Pass 1 — drain priority
 
-Remaining work to close the rest of the gap (est. 3–7x vs Konsole):
+UI drain slices were scheduled at `DispatcherPriority.Background`, which
+only runs when the dispatcher is idle — under floods that meant roughly one
+small slice per frame, capping throughput regardless of budget sizes.
+`Input` priority delivered 2.5–4x. (Two experiments were reverted: raising
+per-slice budgets 16x, and a hop-free parser loop — both measured slower.)
 
-1. Damage-scoped row invalidation during flood finalize (today closer to
-   full-viewport parity refresh per dispatch).
-2. Frame-collapsed finalize: during floods, snapshot the screen model at
-   most once per output frame instead of once per batch window.
-3. Startup: ReadyToRun/NativeAOT publish and deferred subsystem init
-   (today ~2.8 s cold to a live shell).
-4. A published vtebench run once 1–2 land.
+### Pass 2 — frame-collapse + parity move
+
+Profiling the flood pipeline (an env-gated `FloodProfiler`) showed the real
+cost centers were **not** the VT parser but the UI-thread work run *per
+output batch*:
+
+- `FinalizeOutputBatchOnUiThread` (scroll sync, cursor, invalidate) ran
+  ~9,400 times per flood, ~14 s total — co-equal with parsing.
+- Each finalize's `Invalidate` triggered a composition render that took the
+  screen lock, so render and parse burned ~8 s fighting over that lock.
+
+Fixes:
+- **Frame-collapse finalize** — coalesce finalization to at most once per
+  ~16 ms frame, driven by the drain dispatches themselves (a render/idle
+  timer is starved by the high-priority drain during a flood), with a
+  guaranteed flush when the backlog empties so the final frame always lands.
+  Finalize calls dropped ~9,400 → ~2,300 and render lock-wait ~5.2 s → ~1 s.
+- **Move renderer parity out of the parse lock** — highlight spans, hovered
+  link, selection, and opacity are render state; they were recomputed on
+  every parse batch under the screen lock. They now refresh once per
+  throttled finalize, shortening the parse lock hold.
+
+Net: another ~1.6–2x. Row-damage rendering was already in place (the draw
+handler keeps a cached surface and redraws only dirty rows via
+`ClearDirtyViewportRows`); it can't help plain scroll-floods where every
+row changes each frame, but it already covers partial updates (typing,
+TUI).
+
+### Remaining
+
+1. Shorten the render's screen-lock hold (snapshot cells under lock, draw
+   outside) to further cut parse/render contention.
+2. Startup: ReadyToRun/NativeAOT publish and deferred subsystem init.
+3. A published vtebench run on a quiet machine.
 
 Measurements to reproduce: `tools/CascadiaTerminal.Bench` (headless) or
 run the three commands above inside any terminal.
