@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <RoyalTerminalRoot>$(MSBuildThisFileDirectory)..\..\..\RoyalTerminal</RoyalTerminalRoot>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\CascadiaTerminal\CascadiaTerminal.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia.Headless" Version="12.0.5" />
+    <PackageReference Include="Avalonia.HarfBuzz" Version="12.0.5" />
+  </ItemGroup>
+
+  <Import Project="$(RoyalTerminalRoot)\src\RoyalTerminal.GhosttySharp.Native.Linux64\build\RoyalTerminal.GhosttySharp.Native.Linux64.targets" Condition="$([MSBuild]::IsOSPlatform('Linux'))" />
+
+</Project>

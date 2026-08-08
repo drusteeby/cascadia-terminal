@@ -31,7 +31,7 @@ public class App : Application
         base.OnFrameworkInitializationCompleted();
     }
 
-    private static MainWindowShellOptions BuildShellOptions()
+    internal static MainWindowShellOptions BuildShellOptions()
     {
         (WtSettingsDocument settings, IReadOnlyList<WtColorScheme> allSchemes) = WtSettingsLoader.LoadOrCreate();
 
