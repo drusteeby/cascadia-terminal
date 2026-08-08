@@ -109,14 +109,26 @@ Pump(seconds: 0.3);
 // appear exactly once per pane, unduplicated.
 Run(() => window.ViewModel!.SplitPaneRightCommand.Execute().Subscribe());
 Pump(seconds: 1.5);
-for (int i = 0; i < 24; i++)
+// Deep narrow drag: many small steps down to ~1/4 width and back, the way
+// a splitter drag squeezes a pane through dozens of intermediate widths.
+for (int i = 0; i < 30; i++)
 {
     int step = i;
-    Run(() => window.Width = 1280 - ((step % 12) * 24));
-    Pump(seconds: 0.06);
+    Run(() => window.Width = 1280 - (step * 30));
+    Pump(seconds: 0.05);
 }
 
-Run(() => window.Width = 1280);
+for (int i = 30; i >= 0; i--)
+{
+    int step = i;
+    Run(() => window.Width = 1280 - (step * 30));
+    Pump(seconds: 0.05);
+}
+
+// A keystroke settles any coalesced resize (the headless pump does not
+// fire DispatcherTimers, and interactively this is the first thing a
+// user does after a drag anyway).
+SendText("\n");
 Pump(seconds: 1.5);
 Capture("11-resize-stability");
 Run(() => window.ViewModel!.ClosePaneOrTabCommand.Execute().Subscribe());
