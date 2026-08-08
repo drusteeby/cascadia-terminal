@@ -1,18 +1,24 @@
 // Cascadia Terminal - Avalonia application setup: loads Windows Terminal
 // settings.json and boots the RoyalTerminal shell with the ported profiles,
-// schemes, and defaults.
+// schemes, keybindings, and defaults. settings.json is the single source of
+// truth: profile edits round-trip back into it, and external edits
+// hot-reload into every open window.
 
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
 using CascadiaTerminal.Settings;
 using RoyalTerminal.Avalonia.App;
-using RoyalTerminal.Terminal;
 
 namespace CascadiaTerminal;
 
 public class App : Application
 {
+    private static readonly List<WeakReference<MainWindow>> s_windows = [];
+    private static FileSystemWatcher? s_settingsWatcher;
+    private static DispatcherTimer? s_reloadDebounce;
+
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -22,26 +28,35 @@ public class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            MainWindowShellOptions options = BuildShellOptions();
-            MainWindow mainWindow = new(options);
-            mainWindow.Title = "Cascadia Terminal";
-            desktop.MainWindow = mainWindow;
+            desktop.MainWindow = CreateShellWindow();
+            StartSettingsWatcher();
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    /// <summary>
+    /// Creates a fully wired shell window; used for the first window and by
+    /// the "new window" action.
+    /// </summary>
+    internal static MainWindow CreateShellWindow()
+    {
+        MainWindowShellOptions options = BuildShellOptions();
+        options.NewWindowFactory = () => CreateShellWindow().Show();
+
+        MainWindow window = new(options);
+        window.Title = "Cascadia Terminal";
+        s_windows.Add(new WeakReference<MainWindow>(window));
+        return window;
     }
 
     internal static MainWindowShellOptions BuildShellOptions()
     {
         (WtSettingsDocument settings, IReadOnlyList<WtColorScheme> allSchemes) = WtSettingsLoader.LoadOrCreate();
 
-        // Convert WT profiles into the shell's session profile document and
-        // persist it to the app's own store so the shell profile catalog,
-        // launcher, and new-tab menu reflect settings.json.
-        TerminalSessionProfilesDocument profileDocument = WtProfileMapper.ToSessionProfilesDocument(settings);
-        string profileStorePath = Path.Combine(WtSettingsLoader.ConfigDirectory, "session-profiles.json");
-        JsonFileTerminalSessionProfileStore profileStore = new(profileStorePath);
-        profileStore.SaveAsync(profileDocument).AsTask().GetAwaiter().GetResult();
+        // settings.json-backed store: loads convert on the fly, saves from
+        // the in-app settings panel round-trip back into settings.json.
+        WtSettingsStore profileStore = new(WtSettingsLoader.SettingsPath, allSchemes);
 
         // Default scheme: the default profile's colorScheme, falling back to
         // Windows Terminal's classic Campbell.
@@ -52,12 +67,96 @@ public class App : Application
             ?? settings.ProfileDefaults?.ColorScheme
             ?? "Campbell";
 
+        string? userSettingsJson = null;
+        try
+        {
+            userSettingsJson = File.ReadAllText(WtSettingsLoader.SettingsPath);
+        }
+        catch (IOException)
+        {
+            // Keybindings fall back to the ported Windows Terminal defaults.
+        }
+
         return new MainWindowShellOptions
         {
             ShowMacOsTitleBarLogos = false,
             AdditionalThemePresets = WtSchemeConverter.ToPresets(allSchemes),
             DefaultThemePresetId = WtSchemeConverter.PresetId(defaultScheme),
             SessionProfileStore = profileStore,
+            Keybindings = WtActionMapper.BuildKeybindings(userSettingsJson),
+            ConfirmCloseAllTabs = true,
         };
+    }
+
+    /// <summary>
+    /// Watches settings.json and re-applies profiles and keybindings to all
+    /// open windows when it changes (Windows Terminal-style hot reload).
+    /// </summary>
+    private static void StartSettingsWatcher()
+    {
+        try
+        {
+            s_settingsWatcher = new FileSystemWatcher(WtSettingsLoader.ConfigDirectory)
+            {
+                Filter = "settings.json",
+                NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.Size,
+            };
+
+            s_reloadDebounce = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(400),
+            };
+            s_reloadDebounce.Tick += (_, _) =>
+            {
+                s_reloadDebounce!.Stop();
+                ReloadSettingsIntoOpenWindows();
+            };
+
+            FileSystemEventHandler onChanged = (_, _) => Dispatcher.UIThread.Post(() =>
+            {
+                s_reloadDebounce!.Stop();
+                s_reloadDebounce.Start();
+            });
+            s_settingsWatcher.Changed += onChanged;
+            s_settingsWatcher.Created += onChanged;
+            s_settingsWatcher.Renamed += (_, _) => Dispatcher.UIThread.Post(() =>
+            {
+                s_reloadDebounce!.Stop();
+                s_reloadDebounce.Start();
+            });
+            s_settingsWatcher.EnableRaisingEvents = true;
+        }
+        catch (Exception)
+        {
+            // Hot reload is best-effort; the app works without the watcher.
+        }
+    }
+
+    private static void ReloadSettingsIntoOpenWindows()
+    {
+        string? userSettingsJson = null;
+        try
+        {
+            userSettingsJson = File.ReadAllText(WtSettingsLoader.SettingsPath);
+        }
+        catch (IOException)
+        {
+            return; // mid-write; the debounce will fire again on next change
+        }
+
+        IReadOnlyList<ShellKeybinding> keybindings = WtActionMapper.BuildKeybindings(userSettingsJson);
+
+        s_windows.RemoveAll(reference => !reference.TryGetTarget(out _));
+        foreach (WeakReference<MainWindow> reference in s_windows)
+        {
+            if (!reference.TryGetTarget(out MainWindow? window))
+            {
+                continue;
+            }
+
+            window.ApplyKeybindings(keybindings);
+            // Refresh the profile catalog from the settings.json-backed store.
+            window.ViewModel?.RefreshSessionLauncherCommand.Execute().Subscribe();
+        }
     }
 }

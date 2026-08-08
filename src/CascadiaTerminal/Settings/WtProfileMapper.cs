@@ -81,6 +81,9 @@ public static class WtProfileMapper
             {
                 FontFamilyName = ResolveFontFace(profile.FontFace),
                 FontSize = profile.FontSize ?? 12.0,
+                ThemePresetId = string.IsNullOrWhiteSpace(profile.ColorScheme)
+                    ? null
+                    : WtSchemeConverter.PresetId(profile.ColorScheme),
             },
             Behavior = new TerminalSessionBehaviorSettings
             {

@@ -49,15 +49,19 @@ directly. VT processing uses Ghostty's `libghostty-vt`.
 
 ## Default keybindings (Windows Terminal parity)
 
+The defaults are Windows Terminal's own (ported from its defaults.json), so
+chords like `Ctrl+T`/`Ctrl+W` stay free for the shell (readline). Rebind
+anything through the `actions`/`keybindings` arrays in settings.json.
+
 | Action | Keys |
 |---|---|
-| New tab | `Ctrl+T` / `Ctrl+Shift+T` |
-| Close tab | `Ctrl+W` |
+| New tab | `Ctrl+Shift+T` |
+| New window | `Ctrl+Shift+N` |
 | Close pane (or tab when last pane) | `Ctrl+Shift+W` |
 | Duplicate tab | `Ctrl+Shift+D` |
 | Next / previous tab | `Ctrl+Tab` / `Ctrl+Shift+Tab`, `Ctrl+PgDn/PgUp` |
-| Switch to tab 1–9 | `Ctrl+1` … `Ctrl+9` |
-| Split pane right / down / auto | `Alt+Shift+Plus` / `Alt+Shift+Minus` / `Alt+Shift+D` |
+| Split pane right / down (with cwd) | `Alt+Shift+Plus` / `Alt+Shift+Minus` |
+| Split pane auto | `Alt+Shift+D` |
 | Move pane focus | `Alt+Arrows` |
 | Resize pane | `Alt+Shift+Arrows` |
 | Zoom pane | `Ctrl+Shift+X` |
@@ -68,12 +72,22 @@ directly. VT processing uses Ghostty's `libghostty-vt`.
 
 ## Settings
 
-`~/.config/cascadia-terminal/settings.json` — Windows Terminal's format.
-Comments and trailing commas are allowed. Profiles map onto PTY sessions;
-`commandline`, `startingDirectory` (`~`, `$HOME`, and `%USERPROFILE%` all
-work), `colorScheme`, `fontFace`/`fontSize`, `historySize`, `environment`,
-and `hidden` are honored. Missing fonts fall back through Cascadia Mono →
-JetBrains Mono → Fira Code → Ubuntu Mono → DejaVu Sans Mono → monospace.
+`~/.config/cascadia-terminal/settings.json` — Windows Terminal's format,
+and the **single source of truth**. Comments and trailing commas are
+allowed. Profiles map onto PTY sessions; `commandline`, `startingDirectory`
+(`~`, `$HOME`, and `%USERPROFILE%` all work), per-profile `colorScheme`,
+`fontFace`/`fontSize`, `historySize`, `environment`, and `hidden` are
+honored. `actions`/`keybindings` rebind keys using Windows Terminal's chord
+syntax (`"keys": "ctrl+shift+o"`), including `"unbound"`. Missing fonts fall
+back through Cascadia Mono → JetBrains Mono → Fira Code → Ubuntu Mono →
+DejaVu Sans Mono → monospace.
+
+- **Hot reload**: external edits to settings.json re-apply to open windows
+  (profiles and keybindings) without a restart.
+- **Round-trip**: profile edits made in the in-app settings panel are
+  written back into settings.json (unknown fields preserved). Profiles the
+  WT format can't express (e.g. SSH) persist under
+  `cascadiaExtendedProfiles` in the same file.
 
 ## Build & run
 
