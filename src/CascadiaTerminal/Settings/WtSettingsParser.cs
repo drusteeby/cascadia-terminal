@@ -70,6 +70,7 @@ public static class WtSettingsParser
         {
             DefaultProfile = GetString(root, "defaultProfile"),
             CopyOnSelect = GetBool(root, "copyOnSelect") ?? false,
+            RightClick = GetString(root, "rightClick"),
             InitialCols = GetInt(root, "initialCols") ?? 120,
             InitialRows = GetInt(root, "initialRows") ?? 30,
             Theme = GetString(root, "theme"),

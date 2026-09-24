@@ -83,6 +83,13 @@ public sealed record WtSettingsDocument
 {
     public string? DefaultProfile { get; init; }
     public bool CopyOnSelect { get; init; }
+
+    /// <summary>
+    /// Cascadia extension: "contextMenu" (default), "app" (only the running
+    /// application / multiplexer sees right-clicks), or "none".
+    /// </summary>
+    public string? RightClick { get; init; }
+
     public int InitialCols { get; init; } = 120;
     public int InitialRows { get; init; } = 30;
     public string? Theme { get; init; }

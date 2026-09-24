@@ -41,7 +41,10 @@ directly. VT processing uses Ghostty's `libghostty-vt`.
 - **settings.json**: the Windows Terminal format (JSONC), including
   `profiles.defaults`/`profiles.list`, `schemes`, `defaultProfile`,
   `copyOnSelect`, `initialCols/Rows`, nested `font` objects, and the legacy
-  flat profile array — generated on first run with your installed shells
+  flat profile array — generated on first run with your installed shells.
+  Cascadia adds a global `"rightClick"`: `"contextMenu"` (default), `"app"`
+  (no menu; clicks go only to the running app, e.g. a multiplexer), or
+  `"none"` (right-click ignored entirely)
 - **Color schemes**: all 16 schemes shipped by Windows Terminal (Campbell,
   One Half Dark/Light, Solarized, Tango, Vintage, Dimidium, …) plus user
   schemes from settings.json

@@ -10,6 +10,7 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 using CascadiaTerminal.Settings;
 using RoyalTerminal.Avalonia.App;
+using RoyalTerminal.Avalonia.Controls;
 
 namespace CascadiaTerminal;
 
@@ -123,8 +124,21 @@ public class App : Application
             // Terminal-first chrome: the tool rail stays one click away
             // (View > Show Left Panel) but does not compete with the prompt.
             ShowLeftPanelOnStartup = false,
+            RightClickMode = ParseRightClickMode(settings.RightClick),
         };
     }
+
+    /// <summary>
+    /// Maps the settings.json "rightClick" value; unknown values keep the
+    /// Windows Terminal-style context menu.
+    /// </summary>
+    internal static TerminalRightClickMode ParseRightClickMode(string? value) =>
+        value?.Trim().ToLowerInvariant() switch
+        {
+            "app" or "application" => TerminalRightClickMode.Application,
+            "none" or "disabled" or "off" => TerminalRightClickMode.Disabled,
+            _ => TerminalRightClickMode.ContextMenu,
+        };
 
     /// <summary>
     /// Watches settings.json and re-applies profiles and keybindings to all
@@ -205,6 +219,7 @@ public class App : Application
 
             window.ApplyKeybindings(keybindings);
             window.UpdateThemePresets(presets, defaultPresetId);
+            window.ApplyRightClickMode(ParseRightClickMode(settings.RightClick));
             // Refresh the profile catalog from the settings.json-backed store.
             window.ViewModel?.RefreshSessionLauncherCommand.Execute().Subscribe();
         }
